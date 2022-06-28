@@ -1,11 +1,20 @@
 extends ColorRect
 
-var commands = ["mac_copy", "mac_paste", "mac_cut", "mac_select_all"]
-var commands_keys = [KEY_C, KEY_V, KEY_X, KEY_A]
+var commands:PoolStringArray				= ["mac_copy", "mac_paste", "mac_cut", "mac_select_all"]
+var commands_keys:Array						= [KEY_C, KEY_V, KEY_X, KEY_A]
+var _clipboard_callback:JavaScriptObject	= JavaScript.create_callback(self, "_on_clipboard")
+var copied:bool								= false
+var os										= "Windows"
+
+onready var navigator:JavaScriptObject		= JavaScript.get_interface("navigator")
 
 
 func _ready():
-	add_mac_actions()
+	if not OS.has_feature("HTML5"):
+		return
+	os = JavaScript.eval("getOS()")
+	if os == "MacOS":
+		add_mac_actions()
 
 
 func add_mac_actions():
@@ -25,19 +34,48 @@ func add_mac_actions():
 
 
 func _input(event):
+	if not OS.has_feature("HTML5"):
+		return
 	if event is InputEventKey and event.pressed:
-		if event.is_action_pressed("mac_copy"):
-			show_debug("simulate: mac copy")
-			simulate_input(KEY_C)
-		if event.is_action_pressed("mac_paste"):
-			show_debug("simulate: mac paste")
-			simulate_input(KEY_V)
-		if event.is_action_pressed("mac_cut"):
-			show_debug("simulate: mac cut")
-			simulate_input(KEY_X)
-		if event.is_action_pressed("mac_select_all"):
-			show_debug("simulate: mac select all")
-			simulate_input(KEY_A)
+		if os != "MacOS":
+			# Handling default Inputs (Windows)
+			if event.scancode == KEY_C:
+				show_debug("Default: copy")
+			if event.scancode == KEY_V and not copied:
+				copied = true
+				var obj = navigator.clipboard.readText().then(_clipboard_callback)
+				show_debug("Default: paste")
+				get_tree().set_input_as_handled()
+			if event.scancode == KEY_X:
+				show_debug("Default: cut")
+			if event.scancode == KEY_A:
+				show_debug("Default: select all")
+		
+		else:
+			# Handling Mac Input
+			if event.is_action_pressed("mac_copy"):
+				show_debug("MacOS: copy")
+				simulate_input(KEY_C)
+			if event.is_action_pressed("mac_paste") and not copied:
+				copied = true
+				show_debug("MacOS: paste")
+				simulate_input(KEY_V)
+			if event.is_action_pressed("mac_cut"):
+				show_debug("MacOS: cut")
+				simulate_input(KEY_X)
+			if event.is_action_pressed("mac_select_all"):
+				show_debug("MacOS: select all")
+				simulate_input(KEY_A)
+
+
+func _on_clipboard(args):
+	OS.clipboard = args[0]
+	var ev = InputEventKey.new()
+	ev.control = true
+	ev.scancode = KEY_V
+	ev.pressed = true
+	Input.parse_input_event(ev)
+	copied = false
 
 
 func simulate_input(new_scancode):
