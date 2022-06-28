@@ -35,6 +35,7 @@ func add_mac_actions():
 
 func _input(event):
 	if not OS.has_feature("HTML5"):
+		print("input function cancelled: HTML5 feature not found.")
 		return
 	if event is InputEventKey and event.pressed:
 		if os != "MacOS":
@@ -58,8 +59,9 @@ func _input(event):
 				simulate_input(KEY_C)
 			if event.is_action_pressed("mac_paste") and not copied:
 				copied = true
+				var obj = navigator.clipboard.readText().then(_clipboard_callback)
 				show_debug("MacOS: paste")
-				simulate_input(KEY_V)
+				#simulate_input(KEY_V)
 			if event.is_action_pressed("mac_cut"):
 				show_debug("MacOS: cut")
 				simulate_input(KEY_X)
@@ -70,11 +72,7 @@ func _input(event):
 
 func _on_clipboard(args):
 	OS.clipboard = args[0]
-	var ev = InputEventKey.new()
-	ev.control = true
-	ev.scancode = KEY_V
-	ev.pressed = true
-	Input.parse_input_event(ev)
+	simulate_input(KEY_V)
 	copied = false
 
 
