@@ -6,11 +6,12 @@ var _clipboard_callback:JavaScriptObject	= JavaScript.create_callback(self, "_on
 var copied:bool								= false
 var os										= "Windows"
 
+var is_web									= OS.has_feature("HTML5")
 onready var navigator:JavaScriptObject		= JavaScript.get_interface("navigator")
 
 
 func _ready():
-	if not OS.has_feature("HTML5"):
+	if not is_web:
 		return
 	os = JavaScript.eval("getOS()")
 	if os == "MacOS":
@@ -24,18 +25,10 @@ func add_mac_actions():
 		new_event.meta = true
 		new_event.pressed = true
 		InputMap.action_add_event(commands[i], new_event)
-	for i in commands.size():
-		var new_event = InputEventKey.new()
-		new_event.scancode = commands_keys[i]
-		new_event.command = true
-		new_event.pressed = true
-		InputMap.action_add_event(commands[i], new_event)
-
 
 
 func _input(event):
-	if not OS.has_feature("HTML5"):
-		print("input function cancelled: HTML5 feature not found.")
+	if not is_web:
 		return
 	if event is InputEventKey and event.pressed:
 		if os != "MacOS":
@@ -72,8 +65,8 @@ func _input(event):
 
 func _on_clipboard(args):
 	OS.clipboard = args[0]
-	simulate_input(KEY_V)
 	copied = false
+	simulate_input(KEY_V)
 
 
 func simulate_input(new_scancode):
